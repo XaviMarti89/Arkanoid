@@ -1,0 +1,283 @@
+<title>DestrozaMuros</title>
+<link rel="stylesheet" href="style.css">
+
+<canvas></canvas>
+
+<img hidden id="sprite" src="./sprite.png" alt="">
+
+<script>
+    const canvas = document.querySelector('canvas');
+    const ctx = canvas.getContext('2d');
+
+    canvas.width = 448
+    canvas.height = 400
+
+    //Variables de Ladrillos
+    const numFilaMuros = 10;
+    const numColumnMuros = 13;
+
+    const muroWidth = 30;
+    const muroHeight = 14;
+
+    const margeTop = 80;
+    const margeLeft = 15;
+    const espaiEntreMuros = 2;
+
+    const STATUS_MURO = {
+        ACTIU: 1,
+        DESTRUIT: 0
+    }
+
+    const COLORS = {
+        YELLOW: "#333",
+        DESTRUIT: 0
+    }
+
+    const muros = [];
+
+    for(let c=0; c<numColumnMuros; c++){
+        muros[c]=[];
+        for(let r=0; r<numFilaMuros; r++){
+            const muroX = c*(muroWidth+espaiEntreMuros)+margeLeft
+            const muroY = r*(muroHeight+espaiEntreMuros)+margeTop
+      
+            let col = Math.floor(Math.random()*21)
+            muros[c][r]={
+                x:muroX,
+                y:muroY,
+                status:STATUS_MURO.ACTIU,
+                color: col
+            }
+        }
+    }
+
+    
+
+    //Variables des joc
+    //Variables de sa pilota
+    let x = canvas.width / 2
+    let y = canvas.height - 50
+    const radiPilota = 5;
+    //Velocitat Pilota
+    let eixX = 2
+    let eixY = -2
+
+
+    //Variables de sa Pala
+    const palaH = 10;
+    let palaW = 50;
+
+    let palaX = (canvas.width-palaW)/2
+    let palaY = canvas.height - palaH - 10
+
+    let dretaApretat = false;
+    let esquerraApretat = false;
+    let superPoder = ""
+   
+
+    let sensibilitat = 5;
+
+    //FUNCIONS
+    function pintarPilota(){
+        ctx.beginPath()
+        ctx.arc(x,y,radiPilota,0,Math.PI*2)
+        ctx.fillStyle = '#FFF'
+        ctx.fill()
+        ctx.closePath()
+    }
+
+    function pintarPala(){
+        ctx.fillStyle = "#09f"
+        ctx.fillRect(palaX,palaY,palaW,palaH)
+       //const imagen = document.querySelector("#sprite")
+       //ctx.drawImage(imagen,145,120,palaW,palaH,palaX,palaY,palaW,palaH);
+    }
+    function pintarMuros(){
+        for(let c=0; c<numColumnMuros; c++){
+            for(let r=0; r<numFilaMuros; r++){
+                const muroActual = muros[c][r]
+
+                if(muroActual.STATUS_MURO == STATUS_MURO.DESTRUIT){
+                    continue;
+                }
+
+                //ctx.fillStyle = muroActual.color;
+                //ctx.rect(muroActual.x,muroActual.y,muroWidth,muroHeight);
+                //ctx.fill();
+                const imagen = document.querySelector("#sprite")
+                const clipX = muroActual.color*16
+                console.log(clipX)
+                ctx.drawImage(imagen,clipX,0,16,8,muroActual.x,muroActual.y,muroWidth,muroHeight);
+            }
+        }
+    }
+
+    function movimentPilota(){
+
+        if(x + eixX > canvas.width || x + eixX < 0){
+            eixX = -eixX
+        }
+
+        if(y + eixY < 0){
+            eixY = -eixY
+        }
+        const eixXPilotaIgual = x > palaX && x < palaX + palaW;
+        const eixYPilotaIgual = y+eixY > palaY 
+
+        if(eixXPilotaIgual && eixYPilotaIgual){
+            eixY = -eixY
+        }else if(y + eixY > canvas.height){
+            console.log("GAME OVER");
+            document.location.reload();
+        }
+
+        x += eixX
+        y += eixY
+        
+    }
+    function movimentPala(){
+        if(dretaApretat && palaX < canvas.width - palaW){
+            palaX += sensibilitat
+        }else if(esquerraApretat && palaX > 0){
+            palaX -= sensibilitat
+        }
+        if(superPoder == 's'){
+            sensibilitat = 20
+            setTimeout(function(){
+                sensibilitat = 5
+                superPoder = ""
+            }, 3000)
+        }
+        if(superPoder == 'g'){
+            palaW = 100
+            setTimeout(function(){
+                palaW = 50
+                superPoder = ""
+            }, 3000)
+        }
+        if(superPoder == 'p'){
+            palaW = 25
+            setTimeout(function(){
+                palaW = 50
+                superPoder = ""
+            }, 3000)
+        }
+        if(superPoder == 'v'){
+                if(eixX > 0){
+                    eixX = 4
+                }else{
+                    eixX = -4
+                }
+                if(eixY > 0){
+                    eixY = 4
+                }else{
+                    eixY = -4
+                }
+            setTimeout(function(){
+                if(eixX > 0){
+                    eixX = 2
+                }else{
+                    eixX = -2
+                }
+                if(eixY > 0){
+                    eixY = 2
+                }else{
+                    eixY = -2
+                }
+                superPoder = ""
+            }, 3000)
+        }
+    }
+    function colisions(){
+        for(let c=0; c<numColumnMuros; c++){
+            for(let r=0; r<numFilaMuros; r++){
+                const muroActual = muros[c][r]
+
+                if(muroActual.STATUS_MURO == STATUS_MURO.DESTRUIT){
+                    continue;
+                }
+
+                const bollaXesMuroX = x > muroActual.x && x < muroActual.x + muroWidth 
+                const bollaYesMuroY = y > muroActual.y && y < muroActual.y + muroHeight 
+
+                if(bollaXesMuroX && bollaYesMuroY){
+                    eixY = -eixY;
+                    muroActual.STATUS_MURO = STATUS_MURO.DESTRUIT;
+                }
+            }
+        }
+    }
+
+    function borraPantalla(){
+        ctx.clearRect(0, 0, canvas.width, canvas.height)
+    }
+
+    function initEvents(){
+        document.addEventListener('keydown', apretar)
+        document.addEventListener('keyup', soltar)
+
+        function apretar(event){
+            if(event.key == 'ArrowRight'){
+                dretaApretat = true;
+            }else if(event.key == 'ArrowLeft'){
+                esquerraApretat = true;
+            }
+            else if(event.key == 's'){
+                superPoder = 's'
+            }
+            else if(event.key == 'p'){
+                superPoder = 'p'
+            }
+            else if(event.key == 'g'){
+                superPoder = 'g'
+            }
+            else if(event.key == 'v'){
+                superPoder = 'v'
+            }
+        }
+        function soltar(event){
+            if(event.key == 'ArrowRight'){
+                dretaApretat = false;
+            }else if(event.key == 'ArrowLeft'){
+                esquerraApretat = false;
+            }
+        }
+    }
+
+    /*function velocitat(){
+        setInterval(function(){
+            if(eixX > 0){
+                    eixX += 1
+                }else{
+                    eixX -= 1
+                }
+                if(eixY > 0){
+                    eixY += 1
+                }else{
+                    eixY -= 1
+                }
+        },1000)
+    }*/
+
+
+    function dibuixa(){
+
+        borraPantalla();
+
+        pintarPilota()
+        pintarMuros()
+        pintarPala()
+
+        movimentPilota()
+        movimentPala()
+        colisions()
+        window.requestAnimationFrame(dibuixa)
+    }
+
+    dibuixa();
+    initEvents();
+    //velocitat();
+
+    
+
+</script>
